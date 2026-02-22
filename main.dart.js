@@ -85644,7 +85644,7 @@ q=this.d
 if(q!=null)J.avy(q)
 q=this.c
 if(q!=null)J.dM(A.ls(q,!1,t.tj),new A.on(r))}}catch(p){}},
-adz(){var s=A.Qo().a8("/telegram_login.html?bot=nis_math_test_bot").k(0),r=window.open(s,"tg_login","width=400,height=500,left=200,top=100")
+adz(){var s=A.Qo().a8("/telegram_login.html?bot=AIPLUS_demo_bot").k(0),r=window.open(s,"tg_login","width=400,height=500,left=200,top=100")
 this.d=A.aPV(r)},
 J(a){var s,r,q,p,o,n=null,m=A.cA(n,B.Fv,B.q,n,new A.c5(B.b6,n,n,A.ck(20),n,n,B.Z),72,n,n,72),l=A.a6(a).ok.e
 l=A.bq("NIS Math",n,n,n,l==null?n:l.ak2(B.an),n,n)
