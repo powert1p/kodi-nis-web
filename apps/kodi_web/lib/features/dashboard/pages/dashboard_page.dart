@@ -609,6 +609,17 @@ class _HeroCard extends StatelessWidget {
                         const AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
+                if (stats.currentStreak > 0) ...[
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    const Text('🔥', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${stats.currentStreak} ${stats.currentStreak == 1 ? "день" : stats.currentStreak < 5 ? "дня" : "дней"} подряд',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ]),
+                ],
               ]),
         ),
         const SizedBox(width: 20),

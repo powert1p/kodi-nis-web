@@ -8,6 +8,8 @@ class Stats extends Equatable {
     required this.avgTimeS,
     required this.masteredCount,
     required this.totalNodes,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
   });
 
   final int solved;
@@ -16,6 +18,8 @@ class Stats extends Equatable {
   final double avgTimeS;
   final int masteredCount;
   final int totalNodes;
+  final int currentStreak;
+  final int longestStreak;
 
   factory Stats.fromJson(Map<String, dynamic> json) => Stats(
         solved: json['solved'] as int? ?? 0,
@@ -24,6 +28,8 @@ class Stats extends Equatable {
         avgTimeS: (json['avg_time_s'] as num?)?.toDouble() ?? 0.0,
         masteredCount: json['mastered_count'] as int? ?? 0,
         totalNodes: json['total_nodes'] as int? ?? 0,
+        currentStreak: json['current_streak'] as int? ?? 0,
+        longestStreak: json['longest_streak'] as int? ?? 0,
       );
 
   double get masteryPercent =>
@@ -31,5 +37,5 @@ class Stats extends Equatable {
 
   @override
   List<Object?> get props =>
-      [solved, correct, accuracy, masteredCount, totalNodes];
+      [solved, correct, accuracy, masteredCount, totalNodes, currentStreak, longestStreak];
 }
