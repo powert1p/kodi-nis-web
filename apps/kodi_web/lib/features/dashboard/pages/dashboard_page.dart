@@ -8,7 +8,6 @@ import '../../practice/pages/practice_page.dart';
 import 'graph_page.dart';
 import 'leaderboard_page.dart';
 import '../../diagnostic/pages/diagnostic_page.dart';
-import '../../exam/pages/exam_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -518,52 +517,40 @@ class _TopicsList extends StatelessWidget {
                 : null;
             final color = _dotColor(t);
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
-                  // Colored dot
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                        color: color, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 12),
-                  // Topic name + subtitle
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t.nameRu,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
-                        if (t.pMastery != null)
-                          Text(
-                            'оценка по связям',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[400]),
-                          ),
-                      ],
+            return InkWell(
+              onTap: () => Navigator.of(context).pushNamed(
+                '/practice',
+                arguments: {'nodeId': t.id, 'tagName': t.nameRu},
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10, height: 10,
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                     ),
-                  ),
-                  // Percentage
-                  if (pct != null)
-                    Text(
-                      '$pct%',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: color,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.nameRu,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text(pct != null ? 'Нажми чтобы практиковать' : 'Начать изучение',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                        ],
                       ),
                     ),
-                  if (pct == null)
-                    Text('—',
-                        style: TextStyle(
-                            fontSize: 16, color: Colors.grey[300])),
-                ],
+                    if (pct != null)
+                      Text('$pct%',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color)),
+                    if (pct == null)
+                      Text('—', style: TextStyle(fontSize: 16, color: Colors.grey[300])),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right, size: 18, color: Colors.grey[300]),
+                  ],
+                ),
               ),
             );
           }),

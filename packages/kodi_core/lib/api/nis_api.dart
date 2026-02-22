@@ -98,7 +98,8 @@ class NisApiClient {
   // ── Practice ──────────────────────────────────────────────────
 
   Future<Problem> getNextProblem({int count = 1, String? tag, String? nodeId}) async {
-    final res = await _get('/api/practice/next?count=$count&lang=ru');
+    final params = 'count=$count&lang=ru${tag != null ? '&tag=$tag' : ''}${nodeId != null ? '&node_id=$nodeId' : ''}';
+    final res = await _get('/api/practice/next?$params');
     return Problem.fromJson(res);
   }
 

@@ -20,6 +20,7 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
           return PracticePage(
             tag: args?['tag'] as String?,
             tagName: args?['tagName'] as String?,
+            nodeId: args?['nodeId'] as String?,
           );
         },
         settings: settings),

@@ -4,9 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/config.dart';
 
 class PracticePage extends StatefulWidget {
-  const PracticePage({super.key, this.tag, this.tagName, this.embedded = false});
+  const PracticePage({super.key, this.tag, this.tagName, this.nodeId, this.embedded = false});
   final String? tag;
   final String? tagName;
+  final String? nodeId;
   final bool embedded;
   static const routeName = '/practice';
   @override
@@ -52,7 +53,7 @@ class _PracticePageState extends State<PracticePage> {
       _controller.clear();
     });
     try {
-      final p = await _api.getNextProblem(count: _count, tag: widget.tag);
+      final p = await _api.getNextProblem(count: _count, tag: widget.tag, nodeId: widget.nodeId);
       setState(() {
         _problem = p;
         _loading = false;
