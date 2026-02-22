@@ -272,27 +272,35 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
           color: Colors.white, borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (p.imagePath != null && p.imagePath!.isNotEmpty)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.network('${AppConfig.apiBaseUrl}/${p.imagePath}',
-                width: double.infinity, fit: BoxFit.fitWidth,
-                loadingBuilder: (_, child, progress) {
-                  if (progress == null) return child;
-                  return Container(height: 200, alignment: Alignment.center,
-                    child: CircularProgressIndicator(value: progress.expectedTotalBytes != null
-                        ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes! : null));
-                },
-                errorBuilder: (_, __, ___) => Container(height: 100, alignment: Alignment.center,
-                  color: const Color(0xFFF8FAFC),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.image_not_supported, color: Colors.grey[400]),
-                    const SizedBox(height: 4),
-                    Text('Изображение недоступно', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                  ])))),
-          if (p.imagePath == null || p.imagePath!.isEmpty)
-            Padding(padding: const EdgeInsets.all(20),
+          // Always show text
+          if (p.text.isNotEmpty)
+            Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
               child: Text(p.text, style: const TextStyle(fontSize: 17, height: 1.6, color: Color(0xFF1E293B)))),
+          // Show image below (inverted colors for light theme)
+          if (p.imagePath != null && p.imagePath!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix([
+                    -1, 0, 0, 0, 255,
+                    0, -1, 0, 0, 255,
+                    0, 0, -1, 0, 255,
+                    0, 0, 0, 1, 0,
+                  ]),
+                  child: Image.network('\${AppConfig.apiBaseUrl}/\${p.imagePath}',
+                    width: double.infinity, fit: BoxFit.fitWidth,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(height: 120, alignment: Alignment.center,
+                        child: CircularProgressIndicator(value: progress.expectedTotalBytes != null
+                            ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes! : null));
+                    },
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                ),
+              ),
+            ),
         ])),
       const SizedBox(height: 16),
 
