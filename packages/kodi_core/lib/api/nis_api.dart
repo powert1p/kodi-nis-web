@@ -116,7 +116,7 @@ class NisApiClient {
   // ── Diagnostic ──────────────────────────────────────────────
 
   Future<Map<String, dynamic>> startDiagnostic({int phase = 1}) async {
-    return await _post('/api/diagnostic/start', body: {'phase': phase});
+    return await _post('/api/diagnostic/start', {'phase': phase});
   }
 
   Future<Map<String, dynamic>> getDiagnosticQuestion() async {
@@ -128,7 +128,7 @@ class NisApiClient {
     required String answer,
     double elapsedSec = 30.0,
   }) async {
-    return await _post('/api/diagnostic/answer', body: {
+    return await _post('/api/diagnostic/answer', {
       'problem_id': problemId,
       'answer': answer,
       'elapsed_sec': elapsedSec,
@@ -136,7 +136,7 @@ class NisApiClient {
   }
 
   Future<Map<String, dynamic>> finishDiagnostic() async {
-    return await _post('/api/diagnostic/finish', body: {});
+    return await _post('/api/diagnostic/finish', {});
   }
 
   Future<Map<String, dynamic>> getDiagnosticStatus() async {
