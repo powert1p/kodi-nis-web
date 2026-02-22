@@ -111,6 +111,13 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if new student (no mastery data)
+    final hasAnyMastery = nodes.any((n) => n.pMastery != null);
+
+    if (!hasAnyMastery) {
+      return _OnboardingView(student: student);
+    }
+
     // Group nodes by tag → build sections
     final byTag = <String, List<GraphNode>>{};
     for (final n in nodes) {
@@ -401,7 +408,31 @@ class _SectionCardState extends State<_SectionCard>
           // ── Expanded topics ──────────────────────────────
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
-            secondChild: _TopicsList(topics: s.topics),
+            secondChild: Column(
+              children: [
+                _TopicsList(topics: s.topics),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        '/practice',
+                        arguments: {'tag': s.tag, 'tagName': s.nameRu},
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: Text('Тренировать: ${s.nameRu}',
+                          style: const TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                        side: BorderSide(color: const Color(0xFF2563EB).withValues(alpha: 0.3)),
+                        foregroundColor: const Color(0xFF2563EB),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             crossFadeState: _expanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
@@ -715,6 +746,157 @@ class _StatCard extends StatelessWidget {
           Text(label,
               style:
                   const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+        ]),
+      );
+}
+
+// ── Onboarding (new student) ──────────────────────────────────
+class _OnboardingView extends StatelessWidget {
+  const _OnboardingView({required this.student});
+  final Student student;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)]),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: const Icon(Icons.school_rounded,
+                    color: Colors.white, size: 52),
+              ),
+              const SizedBox(height: 28),
+              Text(
+                'Привет, ${student.displayName.split(' ').first}! 👋',
+                style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Добро пожаловать в NIS Math!\n'
+                'Здесь ты подготовишься к экзамену по математике в НИШ.',
+                style: TextStyle(
+                    fontSize: 16, color: Colors.grey[600], height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              // Step cards
+              _StepCard(
+                number: '1',
+                title: 'Пройди диагностику',
+                subtitle: '5-10 минут · система определит твой уровень',
+                icon: Icons.psychology_rounded,
+                color: const Color(0xFF7C3AED),
+              ),
+              const SizedBox(height: 12),
+              _StepCard(
+                number: '2',
+                title: 'Узнай свои пробелы',
+                subtitle: 'AI покажет где у тебя слабые места',
+                icon: Icons.analytics_rounded,
+                color: const Color(0xFF2563EB),
+              ),
+              const SizedBox(height: 12),
+              _StepCard(
+                number: '3',
+                title: 'Тренируйся по темам',
+                subtitle: '2525 задач с решениями и картинками',
+                icon: Icons.fitness_center_rounded,
+                color: const Color(0xFF10B981),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context)
+                      .pushNamed('/diagnostic'),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Начать диагностику',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 56),
+                      backgroundColor: const Color(0xFF7C3AED)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.of(context)
+                    .pushNamed('/practice'),
+                child: Text('Или просто порешать задачи →',
+                    style: TextStyle(
+                        color: Colors.grey[500], fontSize: 14)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  const _StepCard({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+  final String number, title, subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Row(children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.grey[500])),
+              ],
+            ),
+          ),
         ]),
       );
 }

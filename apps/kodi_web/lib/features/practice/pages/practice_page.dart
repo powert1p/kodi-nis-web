@@ -4,7 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../app/config.dart';
 
 class PracticePage extends StatefulWidget {
-  const PracticePage({super.key});
+  const PracticePage({super.key, this.tag, this.tagName, this.embedded = false});
+  final String? tag;
+  final String? tagName;
+  final bool embedded;
   static const routeName = '/practice';
   @override
   State<PracticePage> createState() => _PracticePageState();
@@ -18,6 +21,8 @@ class _PracticePageState extends State<PracticePage> {
   int _count = 1;
   int _correct = 0;
   final _controller = TextEditingController();
+  static const _sessionLimit = 10;
+  bool _sessionDone = false;
   final _focusNode = FocusNode();
 
   @override
@@ -47,7 +52,7 @@ class _PracticePageState extends State<PracticePage> {
       _controller.clear();
     });
     try {
-      final p = await _api.getNextProblem(count: _count);
+      final p = await _api.getNextProblem(count: _count, tag: widget.tag);
       setState(() {
         _problem = p;
         _loading = false;
@@ -76,6 +81,7 @@ class _PracticePageState extends State<PracticePage> {
         _loading = false;
         _count++;
         if (res.isCorrect) _correct++;
+        if (_count > _sessionLimit) _sessionDone = true;
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -103,8 +109,8 @@ class _PracticePageState extends State<PracticePage> {
         elevation: 0.5,
         leading: const BackButton(),
         title: Row(children: [
-          const Text('Практика',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(widget.tagName ?? 'Практика',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const Spacer(),
           // Score badge
           if (_count > 1)
@@ -124,7 +130,9 @@ class _PracticePageState extends State<PracticePage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Center(
+          : _sessionDone
+              ? _buildSessionSummary()
+              : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: SingleChildScrollView(
@@ -347,7 +355,94 @@ class _PracticePageState extends State<PracticePage> {
           ],
         ]);
   }
+
+  Widget _buildSessionSummary() {
+    final pct = _count > 1 ? (_correct / (_count - 1) * 100).round() : 0;
+    final color = pct >= 80
+        ? const Color(0xFF10B981)
+        : pct >= 60
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFFEF4444);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  pct >= 80 ? Icons.emoji_events_rounded : Icons.trending_up_rounded,
+                  color: color,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                pct >= 80 ? 'Отличная работа! 🎉' : pct >= 60 ? 'Хороший результат! 💪' : 'Продолжай стараться! 📚',
+                style: const TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // Stats row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _SummaryChip(label: 'Решено', value: '${_count - 1}', color: const Color(0xFF2563EB)),
+                  const SizedBox(width: 12),
+                  _SummaryChip(label: 'Правильно', value: '$_correct', color: const Color(0xFF10B981)),
+                  const SizedBox(width: 12),
+                  _SummaryChip(label: 'Точность', value: '$pct%', color: color),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _sessionDone = false;
+                      _count = 1;
+                      _correct = 0;
+                    });
+                    _loadNext();
+                  },
+                  icon: const Icon(Icons.replay_rounded),
+                  label: const Text('Ещё 10 задач',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      backgroundColor: const Color(0xFF2563EB)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+                  child: const Text('На главную'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 }
+
+
 
 // ── Difficulty dots ───────────────────────────────────────────
 class _DifficultyDots extends StatelessWidget {
@@ -491,4 +586,27 @@ class _ResultCard extends StatelessWidget {
       ]),
     );
   }
+
 }
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({required this.label, required this.value, required this.color});
+  final String label, value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+        ]),
+      );
+}
+

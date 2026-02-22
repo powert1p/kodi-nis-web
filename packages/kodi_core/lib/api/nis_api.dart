@@ -92,7 +92,7 @@ class NisApiClient {
 
   // ── Practice ──────────────────────────────────────────────────
 
-  Future<Problem> getNextProblem({int count = 1}) async {
+  Future<Problem> getNextProblem({int count = 1, String? tag, String? nodeId}) async {
     final res = await _get('/api/practice/next?count=$count&lang=ru');
     return Problem.fromJson(res);
   }

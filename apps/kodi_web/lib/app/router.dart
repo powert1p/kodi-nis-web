@@ -14,7 +14,14 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     LoginPage.routeName => MaterialPageRoute(
         builder: (_) => const LoginPage(), settings: settings),
     PracticePage.routeName => MaterialPageRoute(
-        builder: (_) => const PracticePage(), settings: settings),
+        builder: (_) {
+          final args = settings.arguments as Map<String, dynamic>?;
+          return PracticePage(
+            tag: args?['tag'] as String?,
+            tagName: args?['tagName'] as String?,
+          );
+        },
+        settings: settings),
     GraphPage.routeName => MaterialPageRoute(
         builder: (_) => const GraphPage(), settings: settings),
     DiagnosticPage.routeName => MaterialPageRoute(
