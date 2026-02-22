@@ -10,7 +10,8 @@ import 'graph_page.dart';
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
   static const routeName = '/';
-  @override State<DashboardPage> createState() => _DashboardPageState();
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
@@ -24,25 +25,33 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<DashboardBloc, DashboardState>(
       builder: (context, state) => Scaffold(
-        backgroundColor: const Color(0xFFF1F5F9),
+        backgroundColor: const Color(0xFFFAF9F6),
         appBar: AppBar(
           backgroundColor: Colors.white,
-          elevation: 0,
+          surfaceTintColor: Colors.white,
+          elevation: 0.5,
           title: Row(children: [
             Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.school_rounded,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('NIS Math', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('NIS Math',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           ]),
           actions: [
             if (state is DashboardLoaded)
               Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: TextButton.icon(
-                  onPressed: () => Navigator.of(context).pushNamed(GraphPage.routeName),
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(GraphPage.routeName),
                   icon: const Icon(Icons.hub_rounded, size: 18),
                   label: const Text('Граф'),
                 ),
@@ -56,9 +65,14 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         body: switch (state) {
-          DashboardLoading() || DashboardInitial() => const Center(child: CircularProgressIndicator()),
-          DashboardError(:final message) => _ErrorView(message: message, onRetry: () => context.read<DashboardBloc>().add(DashboardLoad())),
-          DashboardLoaded(:final student, :final stats, :final nodes) => _Body(student: student, stats: stats, nodes: nodes),
+          DashboardLoading() || DashboardInitial() =>
+            const Center(child: CircularProgressIndicator()),
+          DashboardError(:final message) => _ErrorView(
+              message: message,
+              onRetry: () =>
+                  context.read<DashboardBloc>().add(DashboardLoad())),
+          DashboardLoaded(:final student, :final stats, :final nodes) =>
+            _Body(student: student, stats: stats, nodes: nodes),
           _ => const SizedBox.shrink(),
         },
       ),
@@ -66,62 +80,438 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+// ── Error ──────────────────────────────────────────────────────
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});
-  final String message; final VoidCallback onRetry;
+  final String message;
+  final VoidCallback onRetry;
+
   @override
-  Widget build(BuildContext context) => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-    const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
-    const SizedBox(height: 16),
-    Text(message, textAlign: TextAlign.center),
-    const SizedBox(height: 16),
-    FilledButton(onPressed: onRetry, child: const Text('Повторить')),
-  ]));
+  Widget build(BuildContext context) => Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
+          const SizedBox(height: 16),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onRetry, child: const Text('Повторить')),
+        ]),
+      );
 }
 
+// ── Body ───────────────────────────────────────────────────────
 class _Body extends StatelessWidget {
-  const _Body({required this.student, required this.stats, required this.nodes});
-  final Student student; final Stats stats; final List<GraphNode> nodes;
+  const _Body(
+      {required this.student, required this.stats, required this.nodes});
+  final Student student;
+  final Stats stats;
+  final List<GraphNode> nodes;
 
   @override
   Widget build(BuildContext context) {
-    final lang = student.lang;
+    // Group nodes by tag → build sections
     final byTag = <String, List<GraphNode>>{};
-    for (final n in nodes) { byTag.putIfAbsent(n.tag, () => []).add(n); }
+    for (final n in nodes) {
+      byTag.putIfAbsent(n.tag, () => []).add(n);
+    }
+
+    final sections = byTag.entries.map((e) {
+      final tag = e.key;
+      final topics = e.value;
+      final tested = topics.where((t) => t.pMastery != null).toList();
+      final testedCount = tested.length;
+      final totalCount = topics.length;
+      final avgPct = testedCount > 0
+          ? (tested.fold<double>(0, (s, t) => s + (t.pMastery ?? 0)) /
+                  testedCount *
+                  100)
+              .round()
+          : 0;
+      final mastered =
+          topics.where((t) => (t.pMastery ?? 0) >= 0.7).length;
+      final failed = topics
+          .where((t) => t.pMastery != null && t.pMastery! < 0.7)
+          .length;
+      final untested = totalCount - testedCount;
+
+      return _SectionData(
+        tag: tag,
+        nameRu: _sectionNames[tag] ?? tag,
+        icon: _sectionIcons[tag] ?? '📘',
+        testedCount: testedCount,
+        totalCount: totalCount,
+        percentage: avgPct,
+        barGreen: totalCount > 0 ? mastered / totalCount : 0,
+        barRed: totalCount > 0 ? failed / totalCount : 0,
+        barGray: totalCount > 0 ? untested / totalCount : 0,
+        topics: topics,
+      );
+    }).toList();
+
+    // Sort: tested sections first by % desc, untested at bottom
+    sections.sort((a, b) {
+      if (a.testedCount == 0 && b.testedCount > 0) return 1;
+      if (a.testedCount > 0 && b.testedCount == 0) return -1;
+      return b.percentage.compareTo(a.percentage);
+    });
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _HeroCard(student: student, stats: stats),
-            const SizedBox(height: 20),
-            _StatsRow(stats: stats),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => Navigator.of(context).pushNamed(PracticePage.routeName),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Начать практику', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                style: FilledButton.styleFrom(minimumSize: const Size(0, 56), backgroundColor: const Color(0xFF2563EB)),
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeroCard(student: student, stats: stats),
+                const SizedBox(height: 16),
+                _StatsRow(stats: stats),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => Navigator.of(context)
+                        .pushNamed(PracticePage.routeName),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Начать практику',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600)),
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 56),
+                        backgroundColor: const Color(0xFF2563EB)),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text('РАЗДЕЛЫ',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[500],
+                        letterSpacing: 1.2)),
+                const SizedBox(height: 12),
+                ...sections.map((s) => _SectionCard(section: s)),
+              ]),
+        ),
+      ),
+    );
+  }
+
+  static const _sectionNames = {
+    'arithmetic': 'Арифметика',
+    'fractions': 'Дроби',
+    'decimals': 'Десятичные',
+    'divisibility': 'Делимость',
+    'equations': 'Уравнения',
+    'geometry': 'Геометрия',
+    'algebra': 'Алгебра',
+    'word_problems': 'Текст. задачи',
+    'proportion': 'Пропорции',
+    'percent': 'Проценты',
+    'numbers': 'Числа',
+    'conversion': 'Ед. измерения',
+    'logic': 'Логика',
+    'sets': 'Множества',
+    'data': 'Данные',
+  };
+
+  static const _sectionIcons = {
+    'arithmetic': '🔢',
+    'fractions': '🍕',
+    'decimals': '🔟',
+    'divisibility': '➗',
+    'equations': '⚖️',
+    'geometry': '📐',
+    'algebra': '🔤',
+    'word_problems': '📝',
+    'proportion': '🏗️',
+    'percent': '📊',
+    'numbers': '🔢',
+    'conversion': '📏',
+    'logic': '🧩',
+    'sets': '🔵',
+    'data': '📈',
+  };
+}
+
+// ── Section data ──────────────────────────────────────────────
+class _SectionData {
+  const _SectionData({
+    required this.tag,
+    required this.nameRu,
+    required this.icon,
+    required this.testedCount,
+    required this.totalCount,
+    required this.percentage,
+    required this.barGreen,
+    required this.barRed,
+    required this.barGray,
+    required this.topics,
+  });
+
+  final String tag, nameRu, icon;
+  final int testedCount, totalCount, percentage;
+  final double barGreen, barRed, barGray;
+  final List<GraphNode> topics;
+}
+
+// ── Section Card ──────────────────────────────────────────────
+class _SectionCard extends StatefulWidget {
+  const _SectionCard({required this.section});
+  final _SectionData section;
+  @override
+  State<_SectionCard> createState() => _SectionCardState();
+}
+
+class _SectionCardState extends State<_SectionCard>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+
+  Color _pctColor(int pct) {
+    if (pct >= 75) return const Color(0xFF4CAF50);
+    if (pct >= 60) return const Color(0xFFFF9800);
+    return const Color(0xFFF44336);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.section;
+    final pctColor = s.testedCount > 0
+        ? _pctColor(s.percentage)
+        : Colors.grey[400]!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Header (tappable) ────────────────────────────
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Icon
+                      Text(s.icon, style: const TextStyle(fontSize: 28)),
+                      const SizedBox(width: 12),
+                      // Name + subtitle
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    s.nameRu,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              s.testedCount > 0
+                                  ? '${s.testedCount} из ${s.totalCount} проверено'
+                                  : '${s.totalCount} тем',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[500]),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Percentage
+                      if (s.testedCount > 0)
+                        Text(
+                          '${s.percentage}%',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: pctColor,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      // Arrow
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(Icons.keyboard_arrow_down,
+                            color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // ── 3-segment progress bar ──────────────
+                  _ThreeSegmentBar(
+                    green: s.barGreen,
+                    red: s.barRed,
+                    gray: s.barGray,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 28),
-            const Text('Темы по категориям', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-            const SizedBox(height: 12),
-            ...byTag.entries.map((e) => _CategoryCard(tag: e.key, nodes: e.value, lang: lang)),
-          ]),
+          ),
+          // ── Expanded topics ──────────────────────────────
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: _TopicsList(topics: s.topics),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 3-Segment Progress Bar ────────────────────────────────────
+class _ThreeSegmentBar extends StatelessWidget {
+  const _ThreeSegmentBar({
+    required this.green,
+    required this.red,
+    required this.gray,
+  });
+  final double green, red, gray;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 8,
+        child: Row(
+          children: [
+            if (green > 0)
+              Expanded(
+                flex: (green * 1000).round(),
+                child: Container(color: const Color(0xFF4CAF50)),
+              ),
+            if (red > 0)
+              Expanded(
+                flex: (red * 1000).round(),
+                child: Container(color: const Color(0xFFF44336)),
+              ),
+            if (gray > 0)
+              Expanded(
+                flex: (gray * 1000).round(),
+                child: Container(color: const Color(0xFFE0E0E0)),
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
+// ── Topics List (expanded) ────────────────────────────────────
+class _TopicsList extends StatelessWidget {
+  const _TopicsList({required this.topics});
+  final List<GraphNode> topics;
+
+  Color _dotColor(GraphNode n) {
+    final pct = ((n.pMastery ?? 0) * 100).round();
+    if (n.pMastery == null) return Colors.grey[300]!;
+    if (pct >= 75) return const Color(0xFF4CAF50);
+    if (pct >= 60) return const Color(0xFFFF9800);
+    return const Color(0xFFF44336);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Sort topics: tested first by mastery desc, untested at bottom
+    final sorted = List<GraphNode>.from(topics)
+      ..sort((a, b) {
+        if (a.pMastery == null && b.pMastery != null) return 1;
+        if (a.pMastery != null && b.pMastery == null) return -1;
+        return (b.pMastery ?? 0).compareTo(a.pMastery ?? 0);
+      });
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          ...sorted.map((t) {
+            final pct = t.pMastery != null
+                ? ((t.pMastery! * 100).round())
+                : null;
+            final color = _dotColor(t);
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  // Colored dot
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                        color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 12),
+                  // Topic name + subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t.nameRu,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        if (t.pMastery != null)
+                          Text(
+                            'оценка по связям',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[400]),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Percentage
+                  if (pct != null)
+                    Text(
+                      '$pct%',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  if (pct == null)
+                    Text('—',
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey[300])),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Hero Card ─────────────────────────────────────────────────
 class _HeroCard extends StatelessWidget {
   const _HeroCard({required this.student, required this.stats});
-  final Student student; final Stats stats;
+  final Student student;
+  final Stats stats;
 
   @override
   Widget build(BuildContext context) {
@@ -129,28 +519,45 @@ class _HeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+            colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Привет, ${student.displayName.split(' ').first}! 👋',
-            style: const TextStyle(color: Colors.white70, fontSize: 15)),
-          const SizedBox(height: 4),
-          const Text('Твой прогресс', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text('${stats.masteredCount} из ${stats.totalNodes} тем освоено',
-            style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: pct, minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
-        ])),
+        Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    'Привет, ${student.displayName.split(' ').first}! 👋',
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 15)),
+                const SizedBox(height: 4),
+                const Text('Твой прогресс',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Text(
+                    '${stats.masteredCount} из ${stats.totalNodes} тем освоено',
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 14)),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 10,
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ]),
+        ),
         const SizedBox(width: 20),
         _RingChart(percent: pct),
       ]),
@@ -163,13 +570,18 @@ class _RingChart extends StatelessWidget {
   final double percent;
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 80, height: 80,
-    child: Stack(alignment: Alignment.center, children: [
-      CustomPaint(size: const Size(80, 80), painter: _RingPainter(percent)),
-      Text('${(percent * 100).toStringAsFixed(0)}%',
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-    ]),
-  );
+        width: 80,
+        height: 80,
+        child: Stack(alignment: Alignment.center, children: [
+          CustomPaint(
+              size: const Size(80, 80), painter: _RingPainter(percent)),
+          Text('${(percent * 100).toStringAsFixed(0)}%',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
+        ]),
+      );
 }
 
 class _RingPainter extends CustomPainter {
@@ -177,124 +589,98 @@ class _RingPainter extends CustomPainter {
   final double percent;
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = Colors.white.withValues(alpha: 0.2)..strokeWidth = 8..style = PaintingStyle.stroke;
-    final fg = Paint()..color = Colors.white..strokeWidth = 8..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    final bg = Paint()
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke;
+    final fg = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - 8) / 2;
     canvas.drawCircle(center, radius, bg);
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), -math.pi / 2, 2 * math.pi * percent, false, fg);
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, 2 * math.pi * percent, false, fg);
   }
-  @override bool shouldRepaint(_RingPainter old) => old.percent != percent;
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.percent != percent;
 }
 
+// ── Stats Row ─────────────────────────────────────────────────
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.stats});
   final Stats stats;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
-    final cards = [
-      _StatCard(label: 'Освоено тем', value: '${stats.masteredCount}/${stats.totalNodes}', icon: Icons.school_rounded, color: const Color(0xFF10B981)),
-      _StatCard(label: 'Задач решено', value: '${stats.solved}', icon: Icons.check_circle_outline, color: const Color(0xFF2563EB)),
-      _StatCard(label: 'Точность', value: '${stats.accuracy}%', icon: Icons.analytics_outlined, color: const Color(0xFFF59E0B)),
-      _StatCard(label: 'Ср. время', value: '${stats.avgTimeS.toStringAsFixed(0)}с', icon: Icons.timer_outlined, color: const Color(0xFF8B5CF6)),
-    ];
-    return Wrap(spacing: 12, runSpacing: 12, children: cards);
-  });
+  Widget build(BuildContext context) => Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _StatCard(
+              label: 'Освоено',
+              value: '${stats.masteredCount}/${stats.totalNodes}',
+              icon: Icons.school_rounded,
+              color: const Color(0xFF10B981)),
+          _StatCard(
+              label: 'Решено',
+              value: '${stats.solved}',
+              icon: Icons.check_circle_outline,
+              color: const Color(0xFF2563EB)),
+          _StatCard(
+              label: 'Точность',
+              value: '${stats.accuracy}%',
+              icon: Icons.analytics_outlined,
+              color: const Color(0xFFF59E0B)),
+          _StatCard(
+              label: 'Ср. время',
+              value: '${stats.avgTimeS.toStringAsFixed(0)}с',
+              icon: Icons.timer_outlined,
+              color: const Color(0xFF8B5CF6)),
+        ],
+      );
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value, required this.icon, required this.color});
-  final String label, value; final IconData icon; final Color color;
+  const _StatCard(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.color});
+  final String label, value;
+  final IconData icon;
+  final Color color;
   @override
   Widget build(BuildContext context) => Container(
-    width: 200,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))]),
-    child: Row(children: [
-      Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: color, size: 24)),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-      ])),
-    ]),
-  );
-}
-
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.tag, required this.nodes, required this.lang});
-  final String tag; final List<GraphNode> nodes; final String lang;
-
-  static const _tagLabels = {
-    'arithmetic': 'Арифметика', 'fractions': 'Дроби', 'algebra': 'Алгебра',
-    'geometry': 'Геометрия', 'word_problems': 'Текстовые задачи',
-    'number_theory': 'Теория чисел', 'combinatorics': 'Комбинаторика',
-    'probability': 'Вероятность', 'statistics': 'Статистика',
-    'equations': 'Уравнения', 'decimals': 'Десятичные дроби',
-    'ratios': 'Пропорции и проценты', 'modulus': 'Модуль числа',
-    'sequences': 'Последовательности', 'sets': 'Множества',
-    'negative': 'Отрицательные числа', 'rounding': 'Округление',
-    'measurement': 'Единицы измерения', 'data_analysis': 'Анализ данных',
-    'divisibility': 'Делимость', 'logic': 'Логика',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final mastered = nodes.where((n) => n.status == 'mastered').length;
-    final partial = nodes.where((n) => n.status == 'partial').length;
-    final pct = nodes.isEmpty ? 0.0 : mastered / nodes.length;
-    final label = _tagLabels[tag] ?? tag;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))]),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
-          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
-          const SizedBox(width: 8),
-          Text('$mastered/${nodes.length}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+        width: 140,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2))
+            ]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 20)),
+          const SizedBox(height: 10),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B))),
+          Text(label,
+              style:
+                  const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
         ]),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct, minHeight: 6,
-              backgroundColor: const Color(0xFFE2E8F0),
-              valueColor: AlwaysStoppedAnimation<Color>(pct > 0.7 ? const Color(0xFF10B981) : pct > 0.3 ? const Color(0xFFF59E0B) : const Color(0xFF2563EB)),
-            ),
-          ),
-        ),
-        children: [
-          Wrap(spacing: 8, runSpacing: 8, children: nodes.map((n) => _TopicBadge(node: n, lang: lang)).toList()),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopicBadge extends StatelessWidget {
-  const _TopicBadge({required this.node, required this.lang});
-  final GraphNode node; final String lang;
-  @override
-  Widget build(BuildContext context) {
-    final (color, bg) = switch (node.status) {
-      'mastered' => (const Color(0xFF10B981), const Color(0xFFECFDF5)),
-      'partial'  => (const Color(0xFFF59E0B), const Color(0xFFFFFBEB)),
-      'failed'   => (const Color(0xFFEF4444), const Color(0xFFFEF2F2)),
-      _          => (const Color(0xFF94A3B8), const Color(0xFFF8FAFC)),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.3))),
-      child: Text(node.name(lang), style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
-    );
-  }
+      );
 }
