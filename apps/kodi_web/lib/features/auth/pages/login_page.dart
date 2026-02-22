@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../app/config.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _openTelegramLogin() {
-    final url = Uri.base.resolve('/telegram_login.html').toString();
+    final url = Uri.base.resolve('/telegram_login.html?bot=${AppConfig.telegramBotName}').toString();
     _popup = html.window.open(
       url,
       'tg_login',
