@@ -6,6 +6,7 @@ import '../bloc/dashboard_bloc.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../practice/pages/practice_page.dart';
 import 'graph_page.dart';
+import 'leaderboard_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -71,8 +72,8 @@ class _DashboardPageState extends State<DashboardPage> {
               message: message,
               onRetry: () =>
                   context.read<DashboardBloc>().add(DashboardLoad())),
-          DashboardLoaded(:final student, :final stats, :final nodes) =>
-            _Body(student: student, stats: stats, nodes: nodes),
+          DashboardLoaded(:final student, :final stats, :final nodes, :final leaderboard) =>
+            _Body(student: student, stats: stats, nodes: nodes, leaderboard: leaderboard),
           _ => const SizedBox.shrink(),
         },
       ),
@@ -101,10 +102,11 @@ class _ErrorView extends StatelessWidget {
 // ── Body ───────────────────────────────────────────────────────
 class _Body extends StatelessWidget {
   const _Body(
-      {required this.student, required this.stats, required this.nodes});
+      {required this.student, required this.stats, required this.nodes, required this.leaderboard});
   final Student student;
   final Stats stats;
   final List<GraphNode> nodes;
+  final List<LeaderboardEntry> leaderboard;
 
   @override
   Widget build(BuildContext context) {
@@ -166,19 +168,39 @@ class _Body extends StatelessWidget {
                 const SizedBox(height: 16),
                 _StatsRow(stats: stats),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context)
-                        .pushNamed(PracticePage.routeName),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Начать практику',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
-                    style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 56),
-                        backgroundColor: const Color(0xFF2563EB)),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(context)
+                            .pushNamed(PracticePage.routeName),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Практика',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600)),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 52),
+                            backgroundColor: const Color(0xFF2563EB)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(context)
+                            .pushNamed(LeaderboardPage.routeName,
+                                arguments: leaderboard),
+                        icon: const Icon(Icons.emoji_events_rounded),
+                        label: const Text('Рейтинг',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w600)),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 52),
+                            backgroundColor: const Color(0xFFFF8F00)),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text('РАЗДЕЛЫ',
