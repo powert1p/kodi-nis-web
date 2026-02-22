@@ -37,5 +37,5 @@ class Stats extends Equatable {
 
   @override
   List<Object?> get props =>
-      [solved, correct, accuracy, masteredCount, totalNodes, currentStreak, longestStreak];
+      [solved, correct, accuracy, avgTimeS, masteredCount, totalNodes, currentStreak, longestStreak];
 }

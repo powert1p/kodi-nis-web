@@ -26,15 +26,16 @@ class DashboardLoaded extends DashboardState {
     required this.stats,
     required this.nodes,
     required this.leaderboard,
-  });
+  }) : loadedAt = DateTime.now();
 
   final Student student;
   final Stats stats;
   final List<GraphNode> nodes;
   final List<LeaderboardEntry> leaderboard;
+  final DateTime loadedAt;
 
   @override
-  List<Object?> get props => [student, stats, nodes, leaderboard];
+  List<Object?> get props => [student, stats, nodes, leaderboard, loadedAt];
 }
 
 class DashboardError extends DashboardState {
