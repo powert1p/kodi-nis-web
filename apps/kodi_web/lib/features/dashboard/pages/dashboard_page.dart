@@ -165,6 +165,7 @@ class _Body extends StatelessWidget {
     });
 
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: const EdgeInsets.all(16),
       child: Center(
         child: ConstrainedBox(
@@ -757,6 +758,7 @@ class _OnboardingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: const EdgeInsets.all(24),
       child: Center(
         child: ConstrainedBox(

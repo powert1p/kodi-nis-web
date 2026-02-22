@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kodi_core/kodi_core.dart';
@@ -11,6 +12,21 @@ import 'features/dashboard/pages/dashboard_page.dart';
 
 void main() {
   runApp(const NisMathApp());
+}
+
+class _SmoothScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+  }
 }
 
 class NisMathApp extends StatelessWidget {
@@ -30,6 +46,7 @@ class NisMathApp extends StatelessWidget {
           BlocProvider(create: (_) => DashboardBloc(api: api)),
         ],
         child: MaterialApp(
+          scrollBehavior: _SmoothScrollBehavior(),
           title: 'NIS Math',
           theme: AppTheme.light,
           debugShowCheckedModeBanner: false,
