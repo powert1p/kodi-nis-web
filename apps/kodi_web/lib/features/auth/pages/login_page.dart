@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _openTelegramLogin() {
-    final url = Uri.base.resolve('/telegram_login.html?bot=${AppConfig.telegramBotName}').toString();
+    final url = Uri.base.resolve('telegram_login.html?bot=${AppConfig.telegramBotName}').toString();
     _popup = html.window.open(
       url,
       'tg_login',
