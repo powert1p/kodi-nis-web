@@ -74,12 +74,12 @@ class NisApiClient {
   // ── Stats & Graph ─────────────────────────────────────────────
 
   Future<Stats> getStats() async {
-    final res = await _get('/api/stats/me');
+    final res = await _get('/api/stats/me?lang=ru');
     return Stats.fromJson(res);
   }
 
   Future<Map<String, dynamic>> getGraphData() async {
-    return await _get('/api/graph/me');
+    return await _get('/api/graph/me?lang=ru');
   }
 
   Future<List<GraphNode>> getGraphNodes() async {
@@ -93,12 +93,12 @@ class NisApiClient {
   // ── Practice ──────────────────────────────────────────────────
 
   Future<Problem> getNextProblem({int count = 1}) async {
-    final res = await _get('/api/practice/next?count=$count');
+    final res = await _get('/api/practice/next?count=$count&lang=ru');
     return Problem.fromJson(res);
   }
 
   Future<AnswerResult> submitAnswer(int problemId, String answer) async {
-    final res = await _post('/api/practice/answer', {
+    final res = await _post('/api/practice/answer?lang=ru', {
       'problem_id': problemId,
       'answer': answer,
     });

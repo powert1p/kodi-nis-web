@@ -174,7 +174,8 @@ class _Body extends StatelessWidget {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () => Navigator.of(context)
-                            .pushNamed(DiagnosticPage.routeName),
+                            .pushNamed(DiagnosticPage.routeName)
+                            .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                         icon: const Icon(Icons.psychology_rounded, size: 20),
                         label: const Text('Диагностика',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -187,7 +188,8 @@ class _Body extends StatelessWidget {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () => Navigator.of(context)
-                            .pushNamed(PracticePage.routeName),
+                            .pushNamed(PracticePage.routeName)
+                            .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                         icon: const Icon(Icons.play_arrow_rounded, size: 20),
                         label: const Text('Практика',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
