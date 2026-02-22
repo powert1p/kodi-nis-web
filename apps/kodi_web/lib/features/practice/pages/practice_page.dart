@@ -213,7 +213,7 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
           ],
         ),
         body: _loading ? const Center(child: CircularProgressIndicator())
-            : Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
+            : Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
                 child: SingleChildScrollView(controller: _scrollController, padding: const EdgeInsets.all(16), child: _buildContent()))),
       ));
   }
