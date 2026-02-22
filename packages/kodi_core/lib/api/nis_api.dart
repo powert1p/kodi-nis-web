@@ -24,6 +24,11 @@ class NisApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
+  Future<Map<String, dynamic>> post(
+    String path,
+    Map<String, dynamic> body,
+  ) async => _post(path, body);
+
   Future<Map<String, dynamic>> _post(
     String path,
     Map<String, dynamic> body,

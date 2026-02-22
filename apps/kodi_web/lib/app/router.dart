@@ -5,6 +5,7 @@ import '../features/dashboard/pages/graph_page.dart';
 import '../features/dashboard/pages/leaderboard_page.dart';
 import '../features/dashboard/bloc/dashboard_bloc.dart';
 import '../features/diagnostic/pages/diagnostic_page.dart';
+import '../features/exam/pages/exam_page.dart';
 import '../features/practice/pages/practice_page.dart';
 
 Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -33,6 +34,8 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
           return LeaderboardPage(entries: entries);
         },
         settings: settings),
+    ExamPage.routeName => MaterialPageRoute(
+        builder: (_) => const ExamPage(), settings: settings),
     _ => MaterialPageRoute(
         builder: (_) =>
             const Scaffold(body: Center(child: Text('404')))),

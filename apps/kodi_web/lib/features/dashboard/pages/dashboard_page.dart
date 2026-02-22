@@ -8,6 +8,7 @@ import '../../practice/pages/practice_page.dart';
 import 'graph_page.dart';
 import 'leaderboard_page.dart';
 import '../../diagnostic/pages/diagnostic_page.dart';
+import '../../exam/pages/exam_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -831,6 +832,20 @@ class _OnboardingView extends StatelessWidget {
                   style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 56),
                       backgroundColor: const Color(0xFF7C3AED)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context)
+                      .pushNamed('/exam'),
+                  icon: const Icon(Icons.timer_rounded, color: Color(0xFFEF4444)),
+                  label: const Text('Экзамен с таймером',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      side: const BorderSide(color: Color(0xFFEF4444))),
                 ),
               ),
               const SizedBox(height: 12),
