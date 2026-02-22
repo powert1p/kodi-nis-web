@@ -7,6 +7,7 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../practice/pages/practice_page.dart';
 import 'graph_page.dart';
 import 'leaderboard_page.dart';
+import '../../diagnostic/pages/diagnostic_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -171,32 +172,41 @@ class _Body extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      flex: 3,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(context)
+                            .pushNamed(DiagnosticPage.routeName),
+                        icon: const Icon(Icons.psychology_rounded, size: 20),
+                        label: const Text('Диагностика',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            backgroundColor: const Color(0xFF7C3AED)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: FilledButton.icon(
                         onPressed: () => Navigator.of(context)
                             .pushNamed(PracticePage.routeName),
-                        icon: const Icon(Icons.play_arrow_rounded),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
                         label: const Text('Практика',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 52),
+                            minimumSize: const Size(0, 48),
                             backgroundColor: const Color(0xFF2563EB)),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
-                      flex: 2,
                       child: FilledButton.icon(
                         onPressed: () => Navigator.of(context)
                             .pushNamed(LeaderboardPage.routeName,
                                 arguments: leaderboard),
-                        icon: const Icon(Icons.emoji_events_rounded),
+                        icon: const Icon(Icons.emoji_events_rounded, size: 20),
                         label: const Text('Рейтинг',
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 52),
+                            minimumSize: const Size(0, 48),
                             backgroundColor: const Color(0xFFFF8F00)),
                       ),
                     ),

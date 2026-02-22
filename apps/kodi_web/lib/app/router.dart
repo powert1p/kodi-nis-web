@@ -4,6 +4,7 @@ import '../features/dashboard/pages/dashboard_page.dart';
 import '../features/dashboard/pages/graph_page.dart';
 import '../features/dashboard/pages/leaderboard_page.dart';
 import '../features/dashboard/bloc/dashboard_bloc.dart';
+import '../features/diagnostic/pages/diagnostic_page.dart';
 import '../features/practice/pages/practice_page.dart';
 
 Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -16,6 +17,8 @@ Route<dynamic>? onGenerateRoute(RouteSettings settings) {
         builder: (_) => const PracticePage(), settings: settings),
     GraphPage.routeName => MaterialPageRoute(
         builder: (_) => const GraphPage(), settings: settings),
+    DiagnosticPage.routeName => MaterialPageRoute(
+        builder: (_) => const DiagnosticPage(), settings: settings),
     LeaderboardPage.routeName => MaterialPageRoute(
         builder: (_) {
           final entries =

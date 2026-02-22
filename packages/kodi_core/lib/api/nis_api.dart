@@ -112,4 +112,34 @@ class NisApiClient {
       body: jsonEncode({'problem_id': problemId, 'answer': ''}),
     );
   }
+
+  // ── Diagnostic ──────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> startDiagnostic({int phase = 1}) async {
+    return await _post('/api/diagnostic/start', body: {'phase': phase});
+  }
+
+  Future<Map<String, dynamic>> getDiagnosticQuestion() async {
+    return await _get('/api/diagnostic/question');
+  }
+
+  Future<Map<String, dynamic>> submitDiagnosticAnswer({
+    required int problemId,
+    required String answer,
+    double elapsedSec = 30.0,
+  }) async {
+    return await _post('/api/diagnostic/answer', body: {
+      'problem_id': problemId,
+      'answer': answer,
+      'elapsed_sec': elapsedSec,
+    });
+  }
+
+  Future<Map<String, dynamic>> finishDiagnostic() async {
+    return await _post('/api/diagnostic/finish', body: {});
+  }
+
+  Future<Map<String, dynamic>> getDiagnosticStatus() async {
+    return await _get('/api/diagnostic/status');
+  }
 }
