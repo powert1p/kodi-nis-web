@@ -15,13 +15,21 @@
 <body>
   <div class="box">
     <h2>Войти через Telegram</h2>
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-      data-telegram-login="Kodi_nis_bot"
-      data-size="large"
-      data-onauth="onTelegramAuth(user)"
-      data-request-access="write">
-    </script>
+    <div id="tg-widget"></div>
     <script>
+      // Get bot name from URL param or default to production bot
+      var params = new URLSearchParams(window.location.search);
+      var botName = params.get('bot') || 'nis_math_test_bot';
+
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', botName);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-request-access', 'write');
+      document.getElementById('tg-widget').appendChild(script);
+
       function onTelegramAuth(user) {
         if (window.opener) {
           window.opener.postMessage(JSON.stringify({ type: 'tg_auth', data: user }), '*');
