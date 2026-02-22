@@ -33,6 +33,7 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
   int _topicsTested = 0;
   int _maxTopics = 10;
   int _correctCount = 0;
+  String _mode = 'exam';
 
   // Timer
   late Stopwatch _stopwatch;
@@ -61,18 +62,19 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
     setState(() => _loading = false);
   }
 
-  Future<void> _startDiagnostic(int phase) async {
+  Future<void> _startDiagnostic(String mode) async {
     setState(() {
       _loading = true;
       _error = null;
-      _phase = phase;
+      _phase = 1;
       _started = true;
       _finished = false;
       _correctCount = 0;
       _results = null;
+      _mode = mode;
     });
     try {
-      final q = await _api.startDiagnostic(phase: phase);
+      final q = await _api.startDiagnostic(mode: mode);
       _handleQuestion(q);
     } catch (e) {
       setState(() {
@@ -182,7 +184,7 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(20)),
               child: Text(
-                'Фаза $_phase · $_topicsTested/$_maxTopics',
+                '$_topicsTested/$_maxTopics тем',
                 style: const TextStyle(
                     color: Color(0xFF2563EB),
                     fontSize: 12,
@@ -248,31 +250,28 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
               color: Color(0xFF1E293B))),
       const SizedBox(height: 12),
       Text(
-        'Система определит твой уровень по 118 темам математики.\n'
-        'Адаптивный алгоритм подберёт задачи под тебя.',
+        'Выбери режим — 15 тем, адаптивный алгоритм подберёт задачи.',
         style: TextStyle(
             fontSize: 15, color: Colors.grey[600], height: 1.5),
         textAlign: TextAlign.center,
       ),
       const SizedBox(height: 32),
-      _PhaseCard(
-        phase: 1,
-        title: 'Фаза 1: Тест на пробелы',
-        subtitle: '10 тем · 5-10 минут',
-        description: 'Быстрый скан основных разделов',
-        icon: Icons.flash_on_rounded,
+      _ModeCard(
+        title: 'Готовлюсь к экзамену',
+        subtitle: '15 тем · 10-15 минут',
+        description: 'Сложные темы первыми — проверь готовность',
+        icon: Icons.school_rounded,
         color: const Color(0xFF2563EB),
-        onStart: () => _startDiagnostic(1),
+        onStart: () => _startDiagnostic('exam'),
       ),
       const SizedBox(height: 12),
-      _PhaseCard(
-        phase: 2,
-        title: 'Фаза 2: Глубокий тест',
-        subtitle: '40 тем · 20-30 минут',
-        description: 'Детальная проверка всех областей',
-        icon: Icons.explore_rounded,
+      _ModeCard(
+        title: 'Проверяю пробелы',
+        subtitle: '15 тем · 10-15 минут',
+        description: 'С базовых тем вверх — найди слабые места',
+        icon: Icons.search_rounded,
         color: const Color(0xFF7C3AED),
-        onStart: () => _startDiagnostic(2),
+        onStart: () => _startDiagnostic('gaps'),
       ),
     ]);
   }
@@ -581,20 +580,7 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
               backgroundColor: const Color(0xFF2563EB)),
         ),
       ),
-      if (_phase == 1) ...[
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _startDiagnostic(2),
-            icon: const Icon(Icons.explore_rounded),
-            label: const Text('Начать Фазу 2',
-                style: TextStyle(fontSize: 16)),
-            style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 52)),
-          ),
-        ),
-      ],
+
     ]);
   }
 
@@ -614,9 +600,8 @@ class _DiagnosticPageState extends State<DiagnosticPage> {
 }
 
 // ── Phase card ──────────────────────────────────────────────
-class _PhaseCard extends StatelessWidget {
-  const _PhaseCard({
-    required this.phase,
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
     required this.title,
     required this.subtitle,
     required this.description,
@@ -625,7 +610,6 @@ class _PhaseCard extends StatelessWidget {
     required this.onStart,
   });
 
-  final int phase;
   final String title, subtitle, description;
   final IconData icon;
   final Color color;

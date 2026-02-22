@@ -115,8 +115,8 @@ class NisApiClient {
 
   // ── Diagnostic ──────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> startDiagnostic({int phase = 1}) async {
-    return await _post('/api/diagnostic/start', {'phase': phase});
+  Future<Map<String, dynamic>> startDiagnostic({String mode = 'exam'}) async {
+    return await _post('/api/diagnostic/start', {'mode': mode});
   }
 
   Future<Map<String, dynamic>> getDiagnosticQuestion() async {
