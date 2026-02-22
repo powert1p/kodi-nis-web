@@ -53,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 padding: const EdgeInsets.only(right: 4),
                 child: TextButton.icon(
                   onPressed: () =>
-                      Navigator.of(context).pushNamed(GraphPage.routeName),
+                      Navigator.of(context).pushNamed(GraphPage.routeName).then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                   icon: const Icon(Icons.hub_rounded, size: 18),
                   label: const Text('Граф'),
                 ),
@@ -211,7 +211,8 @@ class _Body extends StatelessWidget {
                       child: FilledButton.icon(
                         onPressed: () => Navigator.of(context)
                             .pushNamed(LeaderboardPage.routeName,
-                                arguments: leaderboard),
+                                arguments: leaderboard)
+                            .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                         icon: const Icon(Icons.emoji_events_rounded, size: 20),
                         label: const Text('Рейтинг',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -420,7 +421,7 @@ class _SectionCardState extends State<_SectionCard>
                       onPressed: () => Navigator.of(context).pushNamed(
                         '/practice',
                         arguments: {'tag': s.tag, 'tagName': s.nameRu},
-                      ),
+                      ).then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                       icon: const Icon(Icons.play_arrow_rounded, size: 18),
                       label: Text('Тренировать: ${s.nameRu}',
                           style: const TextStyle(fontSize: 13)),
@@ -522,7 +523,7 @@ class _TopicsList extends StatelessWidget {
               onTap: () => Navigator.of(context).pushNamed(
                 '/practice',
                 arguments: {'nodeId': t.id, 'tagName': t.nameRu},
-              ),
+              ).then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Row(
@@ -824,7 +825,8 @@ class _OnboardingView extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () => Navigator.of(context)
-                      .pushNamed('/diagnostic'),
+                      .pushNamed('/diagnostic')
+                      .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: const Text('Начать диагностику',
                       style: TextStyle(
@@ -839,7 +841,8 @@ class _OnboardingView extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => Navigator.of(context)
-                      .pushNamed('/exam'),
+                      .pushNamed('/exam')
+                      .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                   icon: const Icon(Icons.timer_rounded, color: Color(0xFFEF4444)),
                   label: const Text('Экзамен с таймером',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -851,7 +854,8 @@ class _OnboardingView extends StatelessWidget {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => Navigator.of(context)
-                    .pushNamed('/practice'),
+                    .pushNamed('/practice')
+                    .then((_) => context.read<DashboardBloc>().add(DashboardLoad())),
                 child: Text('Или просто порешать задачи →',
                     style: TextStyle(
                         color: Colors.grey[500], fontSize: 14)),

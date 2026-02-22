@@ -136,6 +136,50 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
     _count++; await _loadNext();
   }
 
+
+  Future<void> _report() async {
+    if (_problem == null) return;
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Что не так?',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
+            title: const Text('Ошибка в условии'),
+            onTap: () => Navigator.pop(context, 'error'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline, color: Color(0xFFF59E0B)),
+            title: const Text('Неправильный ответ'),
+            onTap: () => Navigator.pop(context, 'wrong_answer'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.visibility_off, color: Color(0xFF64748B)),
+            title: const Text('Непонятное условие'),
+            onTap: () => Navigator.pop(context, 'unclear'),
+          ),
+        ]),
+      ),
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await _api.post('/api/practice/report', {
+        'problem_id': _problem!.problemId,
+        'reason': reason,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Спасибо за жалобу! Мы проверим.')));
+      }
+    } catch (_) {}
+  }
+
   void _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return;
     if (_result != null && (event.logicalKey == LogicalKeyboardKey.arrowRight || event.logicalKey == LogicalKeyboardKey.space)) {
@@ -334,6 +378,12 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
               SizedBox(height: 48, child: OutlinedButton(onPressed: _skip,
                 style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFE2E8F0))),
                 child: const Text('Пропустить', style: TextStyle(color: Color(0xFF64748B))))),
+              const SizedBox(width: 6),
+              SizedBox(height: 48, child: IconButton(
+                onPressed: _report,
+                icon: const Icon(Icons.flag_outlined, color: Color(0xFFCBD5E1), size: 20),
+                tooltip: 'Пожаловаться',
+              )),
             ]),
           ])),
       ],
