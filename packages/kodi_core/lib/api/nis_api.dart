@@ -73,6 +73,12 @@ class NisApiClient {
     return token!;
   }
 
+  Future<String> loginWithPhone(String firebaseToken) async {
+    final res = await _post('/api/auth/phone', {'firebase_token': firebaseToken});
+    token = res['access_token'] as String;
+    return token!;
+  }
+
   Future<Student> getMe() async {
     final res = await _get('/api/auth/me');
     return Student.fromJson(res);

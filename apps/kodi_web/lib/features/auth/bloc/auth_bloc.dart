@@ -15,6 +15,11 @@ class AuthTelegramLogin extends AuthEvent {
   final Map<String, dynamic> tgData;
   @override List<Object?> get props => [tgData];
 }
+class AuthTokenReceived extends AuthEvent {
+  AuthTokenReceived(this.token);
+  final String token;
+  @override List<Object?> get props => [token];
+}
 class AuthLogout extends AuthEvent {}
 
 // ── States ────────────────────────────────────────────────────
@@ -40,6 +45,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({required this.api}) : super(AuthInitial()) {
     on<AuthCheckRequested>(_onCheck);
     on<AuthTelegramLogin>(_onTelegramLogin);
+    on<AuthTokenReceived>(_onTokenReceived);
     on<AuthLogout>(_onLogout);
   }
 
@@ -75,6 +81,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final token = await api.loginWithTelegram(event.tgData);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
+      final student = await api.getMe();
+      emit(AuthAuthenticated(student));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onTokenReceived(
+    AuthTokenReceived event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      api.token = event.token;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, event.token);
       final student = await api.getMe();
       emit(AuthAuthenticated(student));
     } catch (e) {

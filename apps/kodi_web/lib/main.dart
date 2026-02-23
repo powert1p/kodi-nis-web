@@ -1,16 +1,20 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:kodi_core/kodi_core.dart';
 import 'app/config.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
+import 'firebase_options.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/pages/login_page.dart';
 import 'features/dashboard/bloc/dashboard_bloc.dart';
 import 'features/dashboard/pages/dashboard_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.web);
   runApp(const NisMathApp());
 }
 
@@ -38,7 +42,7 @@ class NisMathApp extends StatelessWidget {
 
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider.value(value: api),
+        RepositoryProvider<NisApiClient>.value(value: api),
       ],
       child: MultiBlocProvider(
         providers: [

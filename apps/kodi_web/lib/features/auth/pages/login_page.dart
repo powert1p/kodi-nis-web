@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../../dashboard/pages/dashboard_page.dart';
+import 'phone_login_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -57,74 +58,91 @@ class _LoginPageState extends State<LoginPage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF0F4FF),
         body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 48,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        color: Colors.white,
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'NIS Math',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Подготовка к поступлению в НИШ',
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 40),
-                    BlocBuilder<AuthBloc, AuthState>(
-                      builder: (context, state) {
-                        if (state is AuthLoading) {
-                          return const CircularProgressIndicator();
-                        }
-                        if (state is AuthError) {
-                          return Column(
-                            children: [
-                              Text(
-                                state.message,
-                                style: const TextStyle(color: Colors.red),
-                                textAlign: TextAlign.center,
-                              ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo
+                      Container(
+                        width: 72, height: 72,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(20)),
+                        child: const Icon(Icons.school_rounded, color: Colors.white, size: 40)),
+                      const SizedBox(height: 24),
+                      Text('NIS Math',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text('Подготовка к поступлению в НИШ',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 32),
+
+                      // Phone auth (primary)
+                      BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          if (state is AuthLoading) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator());
+                          }
+                          if (state is AuthError) {
+                            return Column(children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8)),
+                                child: Text(state.message,
+                                    style: TextStyle(color: Colors.red[700], fontSize: 13),
+                                    textAlign: TextAlign.center)),
                               const SizedBox(height: 16),
-                              _loginButton(),
-                            ],
-                          );
-                        }
-                        return _loginButton();
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      '2525 задач · 118 тем · БКТ-алгоритм',
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: Colors.grey[500]),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                              const PhoneLoginPage(),
+                            ]);
+                          }
+                          return const PhoneLoginPage();
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Divider
+                      Row(children: [
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('или', style: TextStyle(color: Colors.grey[400], fontSize: 13))),
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                      ]),
+
+                      const SizedBox(height: 16),
+
+                      // Telegram auth (secondary)
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _openTelegramLogin,
+                          icon: const Icon(Icons.telegram, size: 20),
+                          label: const Text('Войти через Telegram'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            foregroundColor: const Color(0xFF229ED9),
+                            side: const BorderSide(color: Color(0xFF229ED9))),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                      Text('2525 задач · 118 тем · БКТ-алгоритм',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
+                          textAlign: TextAlign.center),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -133,13 +151,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
-  Widget _loginButton() => FilledButton.icon(
-        onPressed: _openTelegramLogin,
-        icon: const Icon(Icons.telegram),
-        label: const Text('Войти через Telegram'),
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF229ED9),
-        ),
-      );
 }
