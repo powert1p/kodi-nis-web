@@ -1,0 +1,33 @@
+---
+description: Always consult architecture docs and CJM before making code changes to understand impact
+alwaysApply: true
+---
+
+# Architecture Awareness
+
+Before making ANY code changes, read the following files to understand impact:
+
+1. `docs/ARCHITECTURE.md` — full dependency graph, state management, API contract
+2. `docs/CJM.md` — customer journey maps, screen flows, pain points
+3. `AUDIT.md` — known bugs and missing features
+
+## Critical Dependency Chains
+
+These files affect multiple features — changes require extra care:
+
+- `packages/kodi_core/lib/api/nis_api.dart` → affects ALL features (auth, dashboard, practice, diagnostic, exam)
+- `packages/kodi_core/lib/models/*` → affects ALL pages that display data
+- `apps/kodi_web/lib/app/config.dart` → affects every API call (6 NisApiClient instances)
+- `apps/kodi_web/lib/app/router.dart` → affects all navigation (7 routes)
+- `apps/kodi_web/lib/shared/widgets/*` → affects PracticePage, DiagnosticPage, ExamPage
+
+## Before Editing a File
+
+1. Check the Impact Matrix in `docs/ARCHITECTURE.md` to see what depends on this file
+2. Check `docs/CJM.md` to understand which user journeys are affected
+3. If changing a model or API method, trace all usages across the codebase
+4. If changing a shared widget, test all 3 pages that use it (practice, diagnostic, exam)
+
+## Known Architectural Issue
+
+PracticePage, DiagnosticPage, and ExamPage create their own NisApiClient instances instead of using the shared RepositoryProvider. Keep this in mind when modifying auth or API logic.

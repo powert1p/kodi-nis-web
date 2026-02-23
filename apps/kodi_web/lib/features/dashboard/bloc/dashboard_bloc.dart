@@ -119,8 +119,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         nodes: nodes,
         leaderboard: leaderboard,
       ));
-    } catch (e) {
-      emit(DashboardError(e.toString()));
+    } on NetworkException catch (e) {
+      emit(DashboardError(e.message));
+    } on ApiException catch (e) {
+      emit(DashboardError(e.userMessage));
+    } catch (_) {
+      emit(DashboardError('Не удалось загрузить данные'));
     }
   }
 }

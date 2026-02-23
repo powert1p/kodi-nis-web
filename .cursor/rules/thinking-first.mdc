@@ -1,0 +1,30 @@
+---
+description: Always use MCP Sequential Thinking tool before making changes
+alwaysApply: true
+---
+
+# Think Before You Code
+
+Always use the `user-sequential-thinking-sequentialthinking` MCP tool before making any code changes.
+
+## When to Use
+
+- Before starting any task (plan your approach)
+- When debugging (reason through causes step by step)
+- When a change touches multiple files (trace the impact)
+- When choosing between multiple approaches (compare trade-offs)
+- When fixing a bug (hypothesize → verify → fix)
+
+## How to Use
+
+Call the sequential thinking tool with:
+- `thought`: your current reasoning step
+- `thoughtNumber` / `totalThoughts`: track your progress
+- `nextThoughtNeeded`: true until you reach a conclusion
+- Use `isRevision` if you need to reconsider a previous step
+
+## Minimum Thinking
+
+- Simple single-file change: at least 2 thoughts (understand + plan)
+- Multi-file change: at least 3 thoughts (understand + impact + plan)
+- Bug fix: at least 4 thoughts (reproduce + hypothesize + verify + plan fix)

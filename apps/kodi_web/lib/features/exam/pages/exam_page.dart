@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kodi_core/kodi_core.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../app/config.dart';
 import '../../../shared/widgets/problem_card.dart';
 import '../../../shared/widgets/answer_input.dart';
 import '../../../shared/widgets/result_card.dart';
@@ -44,8 +43,7 @@ class _ExamPageState extends State<ExamPage> {
   @override
   void initState() {
     super.initState();
-    _api = NisApiClient(baseUrl: AppConfig.apiBaseUrl);
-    _init();
+    _api = context.read<NisApiClient>();
   }
 
   @override
@@ -55,11 +53,6 @@ class _ExamPageState extends State<ExamPage> {
     _focusNode.dispose();
     _keyboardFocus.dispose();
     super.dispose();
-  }
-
-  Future<void> _init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _api.token = prefs.getString('jwt_token');
   }
 
   Future<void> _startExam() async {
@@ -76,8 +69,12 @@ class _ExamPageState extends State<ExamPage> {
       });
       _startTimer();
       _focusAnswer();
-    } catch (e) {
-      setState(() { _loading = false; _error = e.toString(); });
+    } on NetworkException catch (e) {
+      setState(() { _loading = false; _error = e.message; });
+    } on ApiException catch (e) {
+      setState(() { _loading = false; _error = e.userMessage; });
+    } catch (_) {
+      setState(() { _loading = false; _error = 'Не удалось запустить экзамен'; });
     }
   }
 
@@ -108,8 +105,12 @@ class _ExamPageState extends State<ExamPage> {
       if (isCorrect) _correct++;
       _answered++;
       setState(() { _answerResult = result; _loading = false; });
-    } catch (e) {
-      setState(() { _loading = false; _error = e.toString(); });
+    } on NetworkException catch (e) {
+      setState(() { _loading = false; _error = e.message; });
+    } on ApiException catch (e) {
+      setState(() { _loading = false; _error = e.userMessage; });
+    } catch (_) {
+      setState(() { _loading = false; _error = 'Не удалось отправить ответ'; });
     }
   }
 
@@ -145,47 +146,83 @@ class _ExamPageState extends State<ExamPage> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  Future<bool> _confirmLeave() async {
+    if (!_started || _finished) return true;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Покинуть экзамен?'),
+        content: const Text(
+          'Таймер идёт! Если выйдешь, прогресс будет потерян.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Остаться')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('Выйти')),
+        ],
+      ),
+    );
+    return leave ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _keyboardFocus, autofocus: true, onKeyEvent: _handleKeyEvent,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFAF9F6),
-        appBar: AppBar(
-          backgroundColor: Colors.white, surfaceTintColor: Colors.white, elevation: 0.5,
-          leading: const BackButton(),
-          title: Row(children: [
-            const Text('Экзамен', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            if (_started) ...[
-              const Spacer(),
-              // Problem counter
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text('${_currentIndex + 1}/${_problems.length}',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
-              // Timer
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _secondsLeft < 300 ? const Color(0xFFFEF2F2) : const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.timer_rounded, size: 16,
-                    color: _secondsLeft < 300 ? const Color(0xFFEF4444) : const Color(0xFF2563EB)),
-                  const SizedBox(width: 4),
-                  Text(_formatTime(_secondsLeft),
-                    style: TextStyle(
-                      color: _secondsLeft < 300 ? const Color(0xFFEF4444) : const Color(0xFF2563EB),
-                      fontSize: 14, fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
-                ])),
-            ],
-          ])),
-        body: _loading ? const Center(child: CircularProgressIndicator())
-          : Align(alignment: Alignment.topCenter,
-              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
-                child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: _buildContent()))),
-      ));
+    return PopScope(
+      canPop: !_started || _finished,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _confirmLeave();
+        if (shouldLeave && context.mounted) {
+          _timer?.cancel();
+          Navigator.of(context).pop();
+        }
+      },
+      child: KeyboardListener(
+        focusNode: _keyboardFocus, autofocus: true, onKeyEvent: _handleKeyEvent,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFAF9F6),
+          appBar: AppBar(
+            backgroundColor: Colors.white, surfaceTintColor: Colors.white, elevation: 0.5,
+            leading: BackButton(onPressed: () async {
+              if (!_started || _finished) { Navigator.of(context).pop(); return; }
+              final shouldLeave = await _confirmLeave();
+              if (shouldLeave && context.mounted) {
+                _timer?.cancel();
+                Navigator.of(context).pop();
+              }
+            }),
+            title: Row(children: [
+              const Text('Экзамен', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              if (_started) ...[
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text('${_currentIndex + 1}/${_problems.length}',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[500]))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _secondsLeft < 300 ? const Color(0xFFFEF2F2) : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(20)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.timer_rounded, size: 16,
+                      color: _secondsLeft < 300 ? const Color(0xFFEF4444) : const Color(0xFF2563EB)),
+                    const SizedBox(width: 4),
+                    Text(_formatTime(_secondsLeft),
+                      style: TextStyle(
+                        color: _secondsLeft < 300 ? const Color(0xFFEF4444) : const Color(0xFF2563EB),
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+                  ])),
+              ],
+            ])),
+          body: _loading ? const Center(child: CircularProgressIndicator())
+            : Align(alignment: Alignment.topCenter,
+                child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
+                  child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: _buildContent()))),
+        )),
+    );
   }
 
   Widget _buildContent() {

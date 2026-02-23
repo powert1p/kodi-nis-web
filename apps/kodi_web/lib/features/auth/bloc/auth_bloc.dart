@@ -83,8 +83,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await prefs.setString(_tokenKey, token);
       final student = await api.getMe();
       emit(AuthAuthenticated(student));
-    } catch (e) {
-      emit(AuthError(e.toString()));
+    } on NetworkException catch (e) {
+      emit(AuthError(e.message));
+    } on ApiException catch (e) {
+      emit(AuthError(e.userMessage));
+    } catch (_) {
+      emit(AuthError('Не удалось войти через Telegram. Попробуйте ещё раз.'));
     }
   }
 
@@ -99,8 +103,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await prefs.setString(_tokenKey, event.token);
       final student = await api.getMe();
       emit(AuthAuthenticated(student));
-    } catch (e) {
-      emit(AuthError(e.toString()));
+    } on NetworkException catch (e) {
+      emit(AuthError(e.message));
+    } on ApiException catch (e) {
+      emit(AuthError(e.userMessage));
+    } catch (_) {
+      emit(AuthError('Не удалось загрузить профиль. Попробуйте ещё раз.'));
     }
   }
 

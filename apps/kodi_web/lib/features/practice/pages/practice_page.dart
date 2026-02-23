@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kodi_core/kodi_core.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../app/config.dart';
 import '../../../shared/widgets/problem_card.dart';
 import '../../../shared/widgets/answer_input.dart';
 import '../../../shared/widgets/result_card.dart';
@@ -46,12 +45,12 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _api = NisApiClient(baseUrl: AppConfig.apiBaseUrl);
+    _api = context.read<NisApiClient>();
     _stopwatch = Stopwatch();
     _resultAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
     _resultFadeIn = CurvedAnimation(parent: _resultAnimController, curve: Curves.easeOut);
     _comboAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _init();
+    _loadNext();
   }
 
   @override
@@ -64,12 +63,6 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
     _resultAnimController.dispose();
     _comboAnimController.dispose();
     super.dispose();
-  }
-
-  Future<void> _init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _api.token = prefs.getString('jwt_token');
-    await _loadNext();
   }
 
   Future<void> _loadNext() async {
@@ -85,9 +78,15 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
           _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
         }
       });
-    } catch (e) {
+    } on NetworkException catch (e) {
       setState(() => _loading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } on ApiException catch (e) {
+      setState(() => _loading = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.userMessage)));
+    } catch (_) {
+      setState(() => _loading = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Не удалось загрузить задачу')));
     }
   }
 
@@ -120,9 +119,15 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
         } else { _combo = 0; }
       });
       _resultAnimController.forward();
-    } catch (e) {
+    } on NetworkException catch (e) {
       setState(() => _loading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } on ApiException catch (e) {
+      setState(() => _loading = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.userMessage)));
+    } catch (_) {
+      setState(() => _loading = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Не удалось отправить ответ')));
     }
   }
 
@@ -170,15 +175,44 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
       ])));
   }
 
+  Future<bool> _confirmLeave() async {
+    if (_count <= 2) return true;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Завершить практику?'),
+        content: Text('Решено задач: ${_count - 1}, правильно: $_correct.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Продолжить')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Выйти')),
+        ],
+      ),
+    );
+    return leave ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _keyboardFocus, autofocus: true, onKeyEvent: _handleKeyEvent,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFAF9F6),
-        appBar: AppBar(
-          backgroundColor: Colors.white, surfaceTintColor: Colors.white, elevation: 0.5,
-          leading: const BackButton(),
+    return PopScope(
+      canPop: _count <= 2,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _confirmLeave();
+        if (shouldLeave && context.mounted) Navigator.of(context).pop();
+      },
+      child: KeyboardListener(
+        focusNode: _keyboardFocus, autofocus: true, onKeyEvent: _handleKeyEvent,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFAF9F6),
+          appBar: AppBar(
+            backgroundColor: Colors.white, surfaceTintColor: Colors.white, elevation: 0.5,
+            leading: BackButton(onPressed: () async {
+              if (_count <= 2) { Navigator.of(context).pop(); return; }
+              final shouldLeave = await _confirmLeave();
+              if (shouldLeave && context.mounted) Navigator.of(context).pop();
+            }),
           title: Row(children: [
             Flexible(child: Text(widget.tagName ?? 'Практика',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17), overflow: TextOverflow.ellipsis)),
@@ -208,12 +242,13 @@ class _PracticePageState extends State<PracticePage> with TickerProviderStateMix
             if (_count > 2) IconButton(icon: const Icon(Icons.assessment_rounded, color: Color(0xFF64748B)),
               onPressed: _showStats, tooltip: 'Статистика'),
           ]),
-        body: _loading ? const Center(child: CircularProgressIndicator())
-          : Align(alignment: Alignment.topCenter,
-              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
-                child: SingleChildScrollView(controller: _scrollController,
-                  padding: const EdgeInsets.all(16), child: _buildContent()))),
-      ));
+          body: _loading ? const Center(child: CircularProgressIndicator())
+            : Align(alignment: Alignment.topCenter,
+                child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600),
+                  child: SingleChildScrollView(controller: _scrollController,
+                    padding: const EdgeInsets.all(16), child: _buildContent()))),
+        )),
+    );
   }
 
   Widget _buildContent() {

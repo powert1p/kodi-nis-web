@@ -9,8 +9,29 @@ class ApiException implements Exception {
   ApiException(this.message, {this.statusCode});
   final String message;
   final int? statusCode;
+
+  bool get isUnauthorized => statusCode == 401;
+  bool get isForbidden => statusCode == 403;
+  bool get isNotFound => statusCode == 404;
+  bool get isServerError => statusCode != null && statusCode! >= 500;
+
+  String get userMessage {
+    if (isUnauthorized) return 'Неверный PIN или номер телефона';
+    if (isForbidden) return 'Доступ запрещён';
+    if (isNotFound) return 'Сервер не нашёл данные';
+    if (isServerError) return 'Ошибка сервера — попробуйте позже';
+    return message;
+  }
+
   @override
   String toString() => 'ApiException($statusCode): $message';
+}
+
+class NetworkException implements Exception {
+  NetworkException(this.message);
+  final String message;
+  @override
+  String toString() => message;
 }
 
 class NisApiClient {
@@ -35,15 +56,27 @@ class NisApiClient {
     String path,
     Map<String, dynamic> body,
   ) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final http.Response res;
+    try {
+      res = await http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+    } catch (e) {
+      throw NetworkException(
+        'Нет подключения к серверу. Проверьте интернет или попробуйте позже.');
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw ApiException('Сервер вернул некорректный ответ',
+          statusCode: res.statusCode);
+    }
     if (res.statusCode >= 400) {
       throw ApiException(
-        data['detail']?.toString() ?? 'Request failed',
+        data['detail']?.toString() ?? 'Ошибка запроса',
         statusCode: res.statusCode,
       );
     }
@@ -51,14 +84,26 @@ class NisApiClient {
   }
 
   Future<Map<String, dynamic>> _get(String path) async {
-    final res = await http.get(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-    );
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final http.Response res;
+    try {
+      res = await http.get(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+      );
+    } catch (e) {
+      throw NetworkException(
+        'Нет подключения к серверу. Проверьте интернет или попробуйте позже.');
+    }
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw ApiException('Сервер вернул некорректный ответ',
+          statusCode: res.statusCode);
+    }
     if (res.statusCode >= 400) {
       throw ApiException(
-        data['detail']?.toString() ?? 'Request failed',
+        data['detail']?.toString() ?? 'Ошибка запроса',
         statusCode: res.statusCode,
       );
     }
@@ -170,5 +215,9 @@ class NisApiClient {
 
   Future<Map<String, dynamic>> getDiagnosticStatus() async {
     return await _get('/api/diagnostic/status');
+  }
+
+  Future<Map<String, dynamic>> cancelDiagnostic() async {
+    return await _post('/api/diagnostic/cancel', {});
   }
 }

@@ -38,8 +38,12 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
       final api = context.read<NisApiClient>();
       final exists = await api.checkPhone(phone);
       setState(() { _phoneChecked = true; _isRegister = !exists; _loading = false; });
-    } catch (e) {
-      setState(() { _loading = false; _error = 'Ошибка: $e'; });
+    } on NetworkException catch (e) {
+      setState(() { _loading = false; _error = e.message; });
+    } on ApiException catch (e) {
+      setState(() { _loading = false; _error = e.userMessage; });
+    } catch (_) {
+      setState(() { _loading = false; _error = 'Не удалось проверить номер. Попробуйте ещё раз.'; });
     }
   }
 
@@ -65,10 +69,12 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
       }
       if (!mounted) return;
       context.read<AuthBloc>().add(AuthTokenReceived(jwt));
-    } on ApiException catch (e) {
+    } on NetworkException catch (e) {
       setState(() { _loading = false; _error = e.message; });
-    } catch (e) {
-      setState(() { _loading = false; _error = '$e'; });
+    } on ApiException catch (e) {
+      setState(() { _loading = false; _error = e.userMessage; });
+    } catch (_) {
+      setState(() { _loading = false; _error = 'Не удалось войти. Попробуйте ещё раз.'; });
     }
   }
 

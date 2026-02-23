@@ -10,6 +10,7 @@ class Student extends Equatable {
     required this.lang,
     required this.registered,
     required this.diagnosticComplete,
+    this.hasPausedDiagnostic = false,
   });
 
   final int id;
@@ -20,6 +21,7 @@ class Student extends Equatable {
   final String lang;
   final bool registered;
   final bool diagnosticComplete;
+  final bool hasPausedDiagnostic;
 
   String get displayName =>
       fullName ?? firstName ?? username ?? 'Ученик';
@@ -34,8 +36,10 @@ class Student extends Equatable {
         registered: json['registered'] as bool? ?? false,
         diagnosticComplete:
             json['diagnostic_complete'] as bool? ?? false,
+        hasPausedDiagnostic:
+            json['has_paused_diagnostic'] as bool? ?? false,
       );
 
   @override
-  List<Object?> get props => [id, lang, registered, diagnosticComplete];
+  List<Object?> get props => [id, lang, registered, diagnosticComplete, hasPausedDiagnostic];
 }
