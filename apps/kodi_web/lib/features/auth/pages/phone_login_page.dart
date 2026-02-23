@@ -14,11 +14,10 @@ class PhoneLoginPage extends StatefulWidget {
 class _PhoneLoginPageState extends State<PhoneLoginPage> {
   final _phoneController = TextEditingController(text: '+7');
   final _otpController = TextEditingController();
-  String? _verificationId;
+  ConfirmationResult? _confirmationResult;
   bool _codeSent = false;
   bool _loading = false;
   String? _error;
-  int? _resendToken;
 
   @override
   void dispose() {
@@ -36,32 +35,19 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
 
     setState(() { _loading = true; _error = null; });
 
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: phone,
-      timeout: const Duration(seconds: 60),
-      forceResendingToken: _resendToken,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        // Auto-verify (Android only, won't fire on web)
-        await _signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        setState(() {
-          _loading = false;
-          _error = _mapError(e.code);
-        });
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
-          _verificationId = verificationId;
-          _resendToken = resendToken;
-          _codeSent = true;
-          _loading = false;
-        });
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
-    );
+    try {
+      // signInWithPhoneNumber uses invisible reCAPTCHA on web
+      final result = await FirebaseAuth.instance.signInWithPhoneNumber(phone);
+      setState(() {
+        _confirmationResult = result;
+        _codeSent = true;
+        _loading = false;
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() { _loading = false; _error = _mapError(e.code); });
+    } catch (e) {
+      setState(() { _loading = false; _error = 'Ошибка: $e'; });
+    }
   }
 
   Future<void> _verifyCode() async {
@@ -74,26 +60,13 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: code,
-      );
-      await _signInWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      setState(() { _loading = false; _error = _mapError(e.code); });
-    }
-  }
-
-  Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
-    try {
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await _confirmationResult!.confirm(code);
       final idToken = await userCredential.user?.getIdToken();
       if (idToken == null) {
         setState(() { _loading = false; _error = 'Не удалось получить токен'; });
         return;
       }
 
-      // Send Firebase token to our backend
       if (!mounted) return;
       final api = context.read<NisApiClient>();
       final jwt = await api.loginWithPhone(idToken);
@@ -112,6 +85,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
     'too-many-requests' => 'Слишком много попыток. Подождите',
     'invalid-verification-code' => 'Неверный код',
     'session-expired' => 'Код истёк. Запросите новый',
+    'captcha-check-failed' => 'Ошибка проверки. Обновите страницу',
     _ => 'Ошибка: $code',
   };
 
@@ -121,7 +95,6 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (!_codeSent) ...[
-          // Phone input
           TextField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
@@ -143,8 +116,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
               onPressed: _loading ? null : _sendCode,
               style: FilledButton.styleFrom(
                 minimumSize: const Size(0, 52),
-                backgroundColor: const Color(0xFF2563EB),
-              ),
+                backgroundColor: const Color(0xFF2563EB)),
               child: _loading
                   ? const SizedBox(width: 22, height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -152,7 +124,6 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
             ),
           ),
         ] else ...[
-          // OTP input
           Text('Код отправлен на ${_phoneController.text}',
               style: TextStyle(color: Colors.grey[600], fontSize: 14)),
           const SizedBox(height: 16),
@@ -161,6 +132,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
             textAlign: TextAlign.center,
+            autofocus: true,
             decoration: InputDecoration(
               labelText: 'Код из SMS',
               hintText: '123456',
@@ -170,6 +142,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
               fillColor: Colors.grey[50],
             ),
             style: const TextStyle(fontSize: 24, letterSpacing: 8),
+            onSubmitted: (_) => _verifyCode(),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -178,8 +151,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
               onPressed: _loading ? null : _verifyCode,
               style: FilledButton.styleFrom(
                 minimumSize: const Size(0, 52),
-                backgroundColor: const Color(0xFF2563EB),
-              ),
+                backgroundColor: const Color(0xFF2563EB)),
               child: _loading
                   ? const SizedBox(width: 22, height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -188,7 +160,9 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: _loading ? null : () => setState(() { _codeSent = false; _otpController.clear(); _error = null; }),
+            onPressed: _loading ? null : () => setState(() {
+              _codeSent = false; _otpController.clear(); _error = null; _confirmationResult = null;
+            }),
             child: const Text('Изменить номер'),
           ),
         ],
@@ -196,10 +170,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
+            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
             child: Row(children: [
               Icon(Icons.error_outline, color: Colors.red[400], size: 20),
               const SizedBox(width: 8),
