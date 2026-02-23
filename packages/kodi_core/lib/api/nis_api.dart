@@ -73,8 +73,23 @@ class NisApiClient {
     return token!;
   }
 
-  Future<String> loginWithPhone(String firebaseToken) async {
-    final res = await _post('/api/auth/phone', {'firebase_token': firebaseToken});
+  Future<bool> checkPhone(String phone) async {
+    final res = await _post('/api/auth/phone/check', {'phone': phone, 'pin': ''});
+    return res['exists'] as bool;
+  }
+
+  Future<String> phoneRegister(String phone, String name, String pin) async {
+    final res = await _post('/api/auth/phone/register', {
+      'phone': phone, 'name': name, 'pin': pin,
+    });
+    token = res['access_token'] as String;
+    return token!;
+  }
+
+  Future<String> phoneLogin(String phone, String pin) async {
+    final res = await _post('/api/auth/phone/login', {
+      'phone': phone, 'pin': pin,
+    });
     token = res['access_token'] as String;
     return token!;
   }
